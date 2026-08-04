@@ -1,0 +1,88 @@
+---
+title: Keelson — Pacote de distribuição
+package_version: "0.14"
+data: 2026-08-01
+status: draft-pre-validacao
+---
+
+# Método Keelson — pacote de distribuição
+
+> A lista do que vai na caixa + como instalar. **Primeira versão — vai mudar muito.** Para *o que é* o
+> método, comece pelo [`llm-dev-README.md`](llm-dev-README.md).
+
+**Versão do pacote: 0.14 (2026-08-04)** — pré-validação; primeira ferramenta suportada: Claude Code.
+
+## Conteúdo
+
+| Arquivo                                                      | Papel                                             | Versão |
+| ------------------------------------------------------------ | ------------------------------------------------- | ------ |
+| [`llm-dev-README.md`](llm-dev-README.md)                     | front-door: mapa, classes, firewall, glossário    | 0.8    |
+| [`llm-dev-user-guide.md`](llm-dev-user-guide.md)             | user guide: o *como* operacional (instalar, rodar, manter) | 0.1 |
+| [`llm-dev-package.md`](llm-dev-package.md)                   | este manifesto: o que vai na caixa + instalação   | 0.14   |
+| [`llm-dev-memory.md`](llm-dev-memory.md)                     | core: tabuleiro (memória) — núcleo fino           | 0.29   |
+| [`llm-dev-memory-structuring.md`](llm-dev-memory-structuring.md) | core-satellite: memória — estruturação/adoção     | 0.29   |
+| [`llm-dev-memory-machinery.md`](llm-dev-memory-machinery.md) | core-satellite: memória — maquinaria/automação    | 0.29   |
+| [`llm-dev-flow.md`](llm-dev-flow.md)                         | core: jogo (fluxo) — núcleo fino                  | 0.19   |
+| [`llm-dev-flow-maintenance.md`](llm-dev-flow-maintenance.md) | core-satellite: fluxo — manutenção/bug            | 0.17   |
+| [`llm-dev-player.md`](llm-dev-player.md)                     | core: jogador (humano) — contrato de fronteira    | 0.9    |
+| [`llm-dev-claude.md`](llm-dev-claude.md)                     | application guide: Claude Code                    | 0.4    |
+| [`llm-dev-claude.log.md`](llm-dev-claude.log.md)             | log frio do guia: capturas datadas                | 0.1    |
+| [`llm-dev-migration.md`](llm-dev-migration.md)               | playbook de migração (classe `playbook`)          | 0.5    |
+| [`llm-dev-prompt-bootstrap.md`](llm-dev-prompt-bootstrap.md) | prompt: projeto novo                              | 0.4    |
+| [`llm-dev-prompt-migration.md`](llm-dev-prompt-migration.md) | prompt: projeto existente                         | 0.3    |
+| `skills/keelson-plan-init/`                                  | skill: cria o plan a partir do brief VALIDATED    | 0.1    |
+| `skills/keelson-phase-landing/`                              | skill: aterrissagem de fase → escreve tasks-faseN | 0.1    |
+| `skills/keelson-phase-coding/`                               | skill: coding de fase → soleira de BUILT          | 0.1    |
+| `skills/keelson-phase-review/`                               | skill: revisão independente de fase (→ BUILT)     | 0.1    |
+| `skills/keelson-field-validation/`                           | skill: validação de campo (alta fidelidade, orienta) | 0.1 |
+| `skills/keelson-application-guides-update/`                  | skill: re-deriva o application guide (obs.-ancorado) | 0.3 |
+
+## Onde o pacote mora no projeto adotante: `.keelson/`
+
+O projeto que adota o método **vendoriza** este pacote numa pasta **`.keelson/`** na raiz do repo — uma cópia
+**pinada** (a versão fica registrada; atualizar é um *re-vendor* deliberado, não um link vivo). É o irmão do
+`.claude/`: sinaliza "isto é o método, não é conhecimento do *projeto*", e por isso **não** entra em `wiki/`
+nem em `docs/` (que são a memória do projeto).
+
+Com isso, o Tier 0 e os artefatos apontam para o método por **path relativo** (`.keelson/llm-dev-flow.md`) —
+nunca para o disco de quem escreveu o método (que só existe na máquina dele). É a regra que fecha o
+[`llm-dev-memory.md`](llm-dev-memory.md) ("O que faz um bom Tier 0", o *segundo roteamento*): o Tier 0 roteia
+para o conhecimento do projeto (via `wiki/index.md`) **e** para a trilogia do método (via `.keelson/`).
+
+### Exceção: skills rodam de `.claude/skills/`, não de `.keelson/`
+
+O harness (Claude Code) só descobre skills em `.claude/skills/` (projeto), `~/.claude/skills/` (usuário) ou
+via plugin — **nunca** varre `.keelson/`. As skills são, portanto, o único artefato do pacote que **não** é
+lido de `.keelson/`: enquanto os docs são lidos ao vivo por path relativo, as skills são **config executável
+do harness** e precisam viver onde ele as procura. Instalar uma skill = **copiar** `skills/<nome>/` para
+`.claude/skills/<nome>/`.
+
+**Política (pré-validação): instale direto em `.claude/skills/`** — a fonte é o próprio pacote. Pinar uma
+cópia em `.keelson/skills/` e recopiá-la no re-vendor é possível, mas só paga quando as skills começarem a
+divergir por adotante; até lá é sincronização a mais. Em qualquer caso, a versão que **roda** é a de
+`.claude/skills/`.
+
+## O que VOCÊ fornece
+
+- **A referência do fabricante — você a *gera*, não a baixa.** Não existe "manual congelável" das ferramentas
+  de código; então a evidência da ferramenta vem de **captura**: você roda a skill `keelson-application-guides-update`,
+  que pede a **auto-descrição** da ferramenta, ancora no **observável** (`--help`/schema) e grava a captura
+  datada no **log frio** `llm-dev-<ferramenta>.log.md` (append-only). O guia quente aponta para esse log; um
+  **teste de fora em sessão separada** carimba a re-verificação. Espelha o `docs/domain/source/` do método
+  (evidência externa fisicamente separada da síntese) — só que a fonte é a própria ferramenta se descrevendo,
+  não um arquivo baixado.
+
+## Instalação / por onde começar
+
+1. **Vendorize o pacote** em `.keelson/` na raiz do projeto (ver "Onde o pacote mora" acima). Os prompts de
+   instalação já fazem isso e geram o Tier 0 apontando para lá por path relativo.
+2. Leia `llm-dev-README.md` (o mapa) e o `llm-dev-user-guide.md` (o *como* operacional — instalar, rodar, manter).
+3. **Projeto novo** → rode `llm-dev-prompt-bootstrap.md`. **Projeto existente** → `llm-dev-prompt-migration.md`.
+4. (Claude Code) Instale as skills copiando cada `skills/<nome>/` para `.claude/skills/<nome>/` (ver
+   "Exceção: skills rodam de `.claude/skills/`" acima). Skills atuais: `keelson-plan-init`,
+   `keelson-phase-landing`, `keelson-phase-coding`, `keelson-phase-review`, `keelson-field-validation`,
+   `keelson-application-guides-update`.
+
+## Fora do pacote (companheiros — ver `llm-dev-roadmap.md`)
+
+- O livro **"Confiante e Errado"** (o *porquê* / julgamento) — o único artefato pago; o User Guide **faz parte do pacote** (ver Conteúdo), o livro apenas aponta para ele.
