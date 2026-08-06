@@ -2,7 +2,7 @@
 
 *Seu colega brilhante tem amnésia e mente com convicção — eis como construir software com ele mesmo assim.*
 
-> **Rascunho (v0.1).** **O guia de uso, passo a passo.** Se o livro *Confiante e Errado* explica **por que** o método é assim, este guia explica **como** colocá-lo para rodar no seu projeto. O Guia é para **consultar**, não para ler de cabo a rabo: vá direto ao caminho que é o seu.
+> **Rascunho (draft-v0.1).** **O guia de uso, passo a passo.** Se o livro *Confiante e Errado* explica **por que** o método é assim, este guia explica **como** colocá-lo para rodar no seu projeto. O Guia é para **consultar**, não para ler de cabo a rabo: vá direto ao caminho que é o seu.
 
 # Sumário
 
