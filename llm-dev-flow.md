@@ -1,5 +1,5 @@
 ---
-schema_version: "0.19"
+schema_version: "0.27"
 class: core
 status: draft-pre-validacao
 data: 2026-08-01
@@ -43,7 +43,7 @@ O `llm-dev-memory.md` organiza o **presente** (`docs/`), o **passado** (`wiki/lo
 | Doc | Papel | Análogo na indústria |
 |---|---|---|
 | `brief-<slug>.md` | **O QUÊ + PORQUÊ + restrições de design.** A especificação. Versionado, com histórico de revisões | `spec.md` (spec-kit), `requirements.md`+`design.md` (Kiro) |
-| `plan-<slug>.md` | **O COMO.** Plano de implementação faseado, com **gates** de passagem entre fases (critérios objetivos, não datas). Referencia o brief por seção, não duplica | `plan.md` |
+| `plan-<slug>.md` | **O COMO.** Plano de implementação faseado, com **gates** de passagem entre fases (critérios objetivos, não datas). Referencia o brief por seção, não duplica. Versionado — uma lacuna de campo pode abrir uma fase nova por revisão versionada (ver abaixo), mesmo já `VALIDATED` | `plan.md` |
 | `tasks-fase<N>-<slug>.md` | **Quebra fina, uma por fase.** O detalhamento executável de **uma** fase do plano; criado *just-in-time* quando o gate da fase anterior fecha | `tasks.md` (mas um por fase) |
 
 Princípio herdado do glossário: o `plan` **referencia** o brief por § em vez de copiar; o brief é a fonte única. Mesmo raciocínio de "não duplicar o dono".
@@ -64,15 +64,32 @@ O erro clássico de SDD é confundir "spec pronta" com "feature pronta". São co
 
 **Ortogonais a esta escada — não são níveis dela:** *MVP* é recorte (propriedade do `plan`: quão fina é a primeira fatia vertical — convive com qualquer nível); *alpha / beta / GA* são sub-rótulos penduráveis sob `PILOT`/`PROD` (`PILOT:alpha`, `PROD:beta`) quando um projeto precisa de granularidade fina — a escada núcleo permanece com 4 degraus. A *fase do plano* **não** entra aqui: ela é a própria unidade que sobe a escada (ver logo abaixo).
 
+### Sub-degraus — nomeando o que as sessões já produzem
+
+A escada continua com **4 degraus**. Mas cada transição entre eles é feita por mais de uma sessão (ver "Sessões", abaixo), e o que cada sessão entrega de fato hoje só existe em prosa — sem rótulo, cada agente descobre o "estado real" relendo o `tasks`. Nomear resolve isso, sem inventar degrau novo — só sub-rotulando **dentro** de `NOT_BUILT` e de `BUILT`, no mesmo espírito de `PILOT:alpha`/`PROD:beta` acima:
+
+| Valor de `Feature state` | O que já aconteceu | Quem produz |
+|---|---|---|
+| `NOT_BUILT` | só a spec | — |
+| `NOT_BUILT_LANDED` | aterrissado — `tasks-fase<N>` existe, tabela de aterrissagem preenchida | `keelson-phase-landing` (ou, pro modo-bug, `keelson-fix`) |
+| `NOT_BUILT_CODED` | código escrito, testes verdes — a soleira de `BUILT` | `keelson-coding` |
+| `BUILT` | revisão independente aprovou (ver "Guardrails", abaixo — é o que de fato cruza o portão) | `keelson-review-session` |
+| `BUILT_DEPLOYED_PILOT` | implantado em homologação/baixo risco, aguardando validação de campo | `keelson-deploy` |
+| `PILOT` | validação de campo confirmou em homologação/baixo risco | `keelson-field-validation` |
+| `BUILT_DEPLOYED_PROD` | implantado em produção, aguardando validação de campo | `keelson-deploy` |
+| `PROD` | validação de campo confirmou em produção real | `keelson-field-validation` |
+
+**Sintaxe deliberadamente diferente de `PILOT:alpha`:** aqui o valor é um **token só, com `_`**, não `nível:rótulo` — porque este campo é lido por **precondição de skill** ("só execute se `state = X`"), e frontmatter é YAML: um valor com `:` sem aspas é frágil pra comparação exata. `alpha`/`beta`/`GA` são anotação livre, opcional; os sub-degraus acima são gate duro.
+
 Manter o estado no cabeçalho, não no nome do arquivo (`brief-x - DRAFT.md` é anti-padrão — renomear quebra links e histórico de `git`).
 
 ### Onde cada eixo mora — e por que `tasks` é por fase
 
 Uma feature não sobe a escada de evidência inteira de uma vez: ela é construída **fase a fase**, e fases diferentes têm níveis de evidência diferentes ao mesmo tempo (a Fase 0 pode estar `BUILT` — ou até em produção, inerte — enquanto a Fase 1 nem começou). Um `tasks` único por feature não conseguiria carregar um `Feature state` coerente no frontmatter. Daí a regra de **onde cada eixo mora**:
 
-- **`brief` e `plan`** carregam o **`Doc Status`** (maturidade do documento de design). Um de cada por feature.
-- **`tasks-faseN`** carrega o **`Feature state`** — a *fase* é a unidade que acumula evidência e percorre a escada no seu próprio documento. Um por fase.
-- O **estado da feature inteira** é a **fronteira** entre as fases (ex.: "Fase 0 `BUILT`, Fase 1 `NOT_BUILT`").
+- **`brief` e `plan`** carregam só o **`Doc Status`** (maturidade do documento de design). Um de cada por feature.
+- **`tasks-faseN`** carrega **os dois eixos** — é o único artefato que acumula ambos: o **`Doc Status`** (`DRAFT`→`VALIDATED`→`ARCHIVED`) marca se a **tabela de aterrissagem** já foi aprovada por um humano (o gate entre `keelson-phase-landing`/`keelson-fix` e `keelson-coding`); o **`Feature state`** é a escada de evidência do código em si. Os dois avançam em ritmos diferentes e não se substituem: `VALIDATED` sozinho não implica `BUILT`, e um `tasks` pode ficar `VALIDATED` por várias sessões de coding enquanto o `Feature state` sobe devagar. **`VALIDATED` trava só a tabela de aterrissagem** (os já-existe/colisão/lacuna-de-HOW) — o resto do arquivo (checkboxes das tasks) continua mudando normalmente durante o coding; não é o mesmo "quase-imutável" que vale pro `brief`.
+- O **estado da feature inteira** é a **fronteira** entre as fases (ex.: "Fase 0 `BUILT`, Fase 1 `NOT_BUILT`") — **calculado**, nunca gravado no frontmatter de `brief`/`plan` (seria duplicar o dono, que é sempre o `tasks-faseN`). Ver "Como a `wiki/` se acomoda ao processo", abaixo, pra onde esse cálculo aparece.
 
 Consequências práticas:
 
@@ -96,6 +113,17 @@ H3 (validar em PILOT): "Faixa Central é a primeira tática real certa."
 ```
 
 Quando o nível é atingido, a hipótese ou **confirma** (congela — vira invariante/ADR) ou **refuta** (dispara revisão versionada do brief + `log/`). Isso torna a spec honesta sobre o que ainda *não* sabe, e casa com o versionamento que o brief já tem — a revisão é um bump + log, não uma reescrita silenciosa. É o mecanismo que reconcilia "SDD garante direção" com "requisitos amadurecem com o sistema".
+
+## Revisão versionada do `plan` — quando uma fase nova nasce depois do `VALIDATED`
+
+O brief já tinha esse mecanismo (acima); o campo mostrou que o `plan` precisa dele também. Uma lacuna descoberta em produção — um `fix-<slug>.md` que aponta uma peça do brief nunca implementada, um item de `backlog.md`, uma hipótese refutada — pode exigir uma **fase que o plano original não previu**, mesmo com o `plan` já `VALIDATED`. A resposta não é reescrever o plano, nem abrir um `plan-<slug>.md` do zero (a feature já tem plano; o que falta é uma fase): é o mesmo gesto do brief, aplicado ao plano.
+
+- **Bump de versão** (`V0.1`→`V0.2`), com uma entrada curta no topo do documento — o que mudou, por quê, apontando a origem (fix-doc §, item de backlog, brief §) **por ponteiro**, sem repetir o desenho.
+- **Fases já `VALIDATED`/`BUILT` não se tocam.** A fase nova se insere, e as fases seguintes só são **renumeradas** se nenhuma delas já tiver um `tasks-faseN` materializado — a criação *just-in-time* (acima) é o que torna essa renumeração segura. Se uma fase seguinte já tem `tasks-faseN` no chão, não renumeie: anexe a fase nova ao final, ou como sub-fase.
+- **A fase nova nasce marcada, inline, como pendente de revisão humana** — não é um `Doc Status` novo no frontmatter (isso degradaria o documento inteiro por causa de uma fase só); é uma anotação escopada só a ela. O `Doc Status` do plano **permanece `VALIDATED`** durante a revisão — as fases antigas continuam congeladas, e é só a fase nova que espera o humano.
+- **A Superfície de incerteza da revisão é escopada só a ela**, não ao plano inteiro — o mesmo princípio de "um veredito não estica sozinho" (ver "Guardrails", abaixo), agora aplicado a uma edição em vez de a uma revisão.
+
+Não nasce skill nova para isso — é o segundo caminho da mesma skill que cria o plano do zero (ver `keelson-plan-init`), porque a precondição que muda é só "o plano já existe e está `VALIDATED`", não a natureza do trabalho.
 
 ## Aterrissagem: reconciliar a spec com o código antes da quebra-fina
 
@@ -132,7 +160,7 @@ Corrigir um bug é um **modo de trabalho próprio**, não o fluxo forward. Toda 
 
 ## Como a `wiki/` se acomoda ao processo
 
-- **`index.md`** ganha uma seção "Especificações (SDD)" — tabela das features por `Doc Status` × `Feature state`, com ponteiros brief/plan/tasks. Um agente entrando frio vê o estado do roadmap num relance.
+- **`index.md`** ganha uma seção "Especificações (SDD)" — tabela das features por `Doc Status` × `Feature state`, com ponteiros brief/plan/tasks. Um agente entrando frio vê o estado do roadmap num relance. O `Feature state` da **feature inteira**, nessa tabela, é o **mínimo entre as `tasks-faseN`** existentes, na ordem da escada (incluindo sub-degraus: `NOT_BUILT < NOT_BUILT_LANDED < NOT_BUILT_CODED < BUILT < BUILT_DEPLOYED_PILOT < PILOT < BUILT_DEPLOYED_PROD < PROD`) — é uma coluna **calculada** ao montar a tabela, nunca um campo gravado em `brief`/`plan`.
 - **`glossary.md`** colhe o vocabulário no `VALIDATED` (ritual acima).
 - **`log/`** registra os marcos: `DRAFT`→`VALIDATED`, cada gate de fase que passa, e cada divergência spec↔código.
 - **`now/<branch>.md`** carrega o progresso fino durante a implementação ("Fase 2, faltam os testes de crash do gate 2→3").
@@ -149,9 +177,18 @@ Uma pergunta que todo mundo que trabalha com LLM sente mas raramente resolve: *q
 
 > **Uma sessão = uma transição de estado de *um* artefato.**
 
-- Sessão do **brief** → move o brief de `DRAFT` para `VALIDATED`.
+- Sessão do **brief** → move o brief de `DRAFT` para `VALIDATED`. (Se nem `DRAFT` existe ainda — a decisão de
+  desenho emergiu de uma investigação sem cobertura —, `keelson-brief-prep` faz a preparação mecânica
+  primeiro; o conteúdo em si, o QUÊ/PORQUÊ, segue sem skill, ver [`llm-dev-player.md`](llm-dev-player.md).)
 - Sessão do **plan** → move o plan de `DRAFT` para `VALIDATED`.
-- Sessão de **coding da fase N** → move o `tasks-fase<N>` de `NOT_BUILT` rumo a `BUILT`.
+- Sessão de **aterrissagem** (`keelson-phase-landing`) → move o `tasks-fase<N>` a `NOT_BUILT_LANDED`.
+- Sessão de **coding** (`keelson-coding`) → move o `tasks-fase<N>` a `NOT_BUILT_CODED` — a soleira de `BUILT`.
+- Sessão de **revisão** (`keelson-review-session`, sempre sessão separada) → cruza o portão pra `BUILT`.
+- Sessão de **deploy** (`keelson-deploy`) → move a `BUILT_DEPLOYED_PILOT`/`BUILT_DEPLOYED_PROD`.
+- Sessão de **validação de campo** (`keelson-field-validation`) → move a `PILOT`/`PROD`.
+- Sessão de **bug-fix** (`keelson-fix`) → mesma escada, começando já aterrissada (ver o satélite [**Manutenção**](llm-dev-flow-maintenance.md)).
+
+**Regra dura:** se, dentro de qualquer uma dessas sessões, aparecer um bug **fora do escopo dela** (de outra fase, ou achado incidental — ex.: `keelson-field-validation` tropeça num bug que não é o que estava validando), a sessão **não conserta inline**. Ela para, registra o achado, e aponta para `keelson-fix` — mesmo que pareça pequeno. Misturar o modo da sessão corrente com uma investigação de causa-raiz não pedida é o mesmo custo de poluição de contexto que a separação de sessões existe para evitar.
 
 Por que isso é natural do ponto de vista do LLM — duas razões, ambas econômicas:
 
@@ -167,8 +204,9 @@ Nuance — é um mapeamento de **tipos** de sessão, não uma contagem literal d
 - O brief costuma levar **várias** sessões até `VALIDATED` (refinamento iterativo). "Uma sessão de brief" é, na real, "uma fase de trabalho de brief".
 - Uma **fase grande** se quebra em mais de uma sessão de coding (por cluster de tasks) — o `tasks-faseN` com checkboxes é o que permite pausar/retomar sem perder o fio.
 - Features pequenas **colapsam** brief + plan numa sessão só.
+- Um bug pequeno **colapsa** triagem + causa-raiz + coding numa sessão só de `keelson-fix` (mesma lógica — nenhum desses três precisa de sessão fresca entre si, só a **revisão** precisa).
 
-E há transições que a sessão **não fecha sozinha**: `→ BUILT` normalmente exige revisão humana + deploy. A sessão de coding leva o `tasks-faseN` até a *soleira* do `BUILT` (código escrito, testes verdes) e faz o handoff ali — a promoção formal é do operador. (Mesmo com todos os testes verdes, uma fase pode se manter em `NOT_BUILT` — falta revisão + deploy + ADR; o agente não vira a chave sozinho.)
+E há uma transição que a sessão **nunca fecha sozinha, por construção**: `→ BUILT` exige revisão independente (ver "Guardrails", abaixo) — e revisão **é**, por definição, uma sessão diferente da que codou. Nenhuma skill pode se auto-conceder essa independência chamando outra skill dentro da mesma sessão; é o único portão da escada inteira onde colapsar sessões quebra a própria garantia que o portão promete. A sessão de coding (`keelson-coding`, ou `keelson-fix` quando colapsado) leva o artefato até a *soleira* do `BUILT` (`NOT_BUILT_CODED` — código escrito, testes verdes) e faz o handoff ali; deploy (`keelson-deploy`) e validação de campo (`keelson-field-validation`), ao contrário, não dependem de sessão fresca — podem rodar na mesma sessão da revisão ou do coding, à vontade, com o humano confirmando em cada portal.
 
 ---
 
@@ -189,7 +227,97 @@ Antes, o que é uma **fronteira**: qualquer ponto onde o código depende de um *
 1. **Teste-de-costura — baixe a fidelidade para a esquerda, onde é barato.** Para **cada fronteira** que a fase cruza e que **sustenta peso**, **um** teste exercita o **contraparte real** in-suite — não o dublê. Antídoto ao *"o dublê nunca discorda do autor"*: um dublê escrito pela mesma mão concorda consigo por construção; só o contraparte real discorda, e pega barato e cedo a classe de bug que de outro modo só a produção revelaria. *(Exemplos de domínios distintos: o motor de banco real e o middleware real num serviço; o terminal/protocolo real num sistema de trading; o sistema de arquivos real num CLI; o dispositivo real num embarcado.)*
 2. **`field-validation-required` — o resíduo caro, nomeado.** A fronteira cujo contraparte real **genuinamente não roda in-suite** — porque só existe no host/produção/dispositivo/mercado vivo (um secret provisionado, timing real, um serviço externo, o hardware) — **não** se finge testada: vira uma **lista explícita** no handoff, para a validação de alta fidelidade. É o eixo que a **escada de evidência** sobe (`BUILT` afirma só a camada de dublê; `PILOT`/`PROD` cruzam para a real). O revisor não valida campo — **nomeia onde é cego**.
 
-Régua de sempre: **proporcional ao raio de explosão** — costura para toda fronteira que sustenta peso, não para um wrapper trivial.
+Régua de sempre: **proporcional ao raio de explosão** — costura para toda fronteira que sustenta peso, não para um wrapper trivial. **Exceção nomeada, aplicada na triagem de revisão** (detalhe operacional em `keelson-review-session`): se a lacuna de costura é **dívida herdada** — o diff copiou fielmente um padrão sem costura que já existe, idêntico, em código já `BUILT` — e o raio é baixo, isso vira recomendação registrada, não `VOLTA`. A fase não é responsável por uma dívida que herdou, só pela que introduziu.
+
+### Revisão independente é obrigatória por padrão — com override humano explícito, nunca silencioso
+
+Diferente do teste-de-costura (proporcional ao raio), a revisão independente que cruza `→BUILT` é **obrigatória por padrão**, feature ou fix — não "normalmente exigida". Diff pequeno é revisão barata e rápida; é exatamente onde pular custaria mais do que economiza. Isto **não é** um bloqueio incondicional: o operador pode **decidir explicitamente pular**, mas a decisão é sempre dele, nunca da skill, e fica **registrada** no cabeçalho do artefato promovido (o `Feature state: BUILT` carrega a justificativa inline — "promovido sem revisão independente separada, aceito pelo operador, motivo: X"), nunca um pulo silencioso.
+
+**Gatilho mecânico, independente de raio:** se o diff **reescreve o valor esperado de um teste pré-existente** (não só adiciona teste novo), a recomendação de revisão sobe de força **mesmo em raio baixo** — é a assinatura clássica de confiante-mas-errado: o mesmo agente que escreveu o fix também reescreveu a prova de que está certo, e um teste que concordava com o comportamento antigo não vai discordar do novo por conta própria. Checável por grep no diff, sem julgamento.
+
+**Sem sessão humana nova, uma orientação em camadas** (detalhe operacional mora em `keelson-review-session`, não duplicado aqui): raio baixo e sem o gatilho de reescrita-de-teste → um sub-agente com contexto fresco (só o diff + a camada congelada, nunca a narrativa do autor) já entrega a independência de *sessão* que a revisão promete. Raio médio/alto ou gatilho de reescrita-de-teste → sub-agente com modelo/config deliberadamente diferente do autor, ou sessão humana separada — porque aí o que se protege não é só "outra leitura", é um viés sistemático que o mesmo modelo, na mesma config, tende a repetir.
+
+### Um veredito não estica sozinho — diff que muda depois do `PRONTO` não está coberto
+
+O veredito de `keelson-review-session` cobre o diff **que existia no momento da revisão** — não o artefato pra
+sempre. Se o código mudar depois de um `PRONTO` (mesmo endereçando uma recomendação **da própria revisão**,
+mesmo que seja só um teste novo, sem tocar produção), as linhas novas **não** herdam o veredito antigo por
+osmose. Isso vale a mesma régua da revisão em si: **obrigatória por padrão, override explícito permitido,
+nunca silêncio.**
+
+- **Padrão:** chame `keelson-review-session` de novo — mas não do zero. Uma **passada focada no delta**: o
+  que já foi revisado (e não mudou) não precisa de nova leitura; só o que mudou desde o veredito anterior
+  entra no escopo novo.
+- **Override:** o humano pode decidir que o delta é pequeno/baixo-raio o bastante pra dispensar nova revisão
+  (o exemplo mais comum: só teste novo, produção intocada) — mas é decisão **dele, nomeada**, não a skill
+  presumindo que "o veredito de antes ainda vale". Registre no handoff/log, do mesmo jeito que qualquer outro
+  override de revisão.
+- **Quem detecta:** a skill que fez a mudança pós-veredito (`keelson-coding`, tipicamente) sinaliza isso
+  explicitamente no handoff — "este diff mudou depois do veredito de {data}; as linhas novas não foram
+  cobertas" — não deixa pra quem for virar a chave descobrir sozinho.
+
+### Recomendação: não commite até `BUILT`
+
+O handoff do coding (a soleira `NOT_BUILT_CODED`) fica, por padrão, **sem commit** — a revisão roda contra o
+**working tree**, não contra um commit fechado. Se o veredito for `VOLTA`, o conserto continua no mesmo diff
+não commitado: não existe um commit "ruim" pra reverter ou reescrever. O commit acontece **uma vez**, no
+momento em que `BUILT` é atingido (veredito `PRONTO` + a chave virada, ou o override registrado) — um commit
+limpo que representa o trabalho já revisado, não uma sequência com o ruído do ciclo de revisão embutido nela.
+É o ponto de partida natural pra `keelson-deploy` em seguida.
+
+**Não é regra absoluta:** uma fase grande, quebrada em várias sessões de coding ao longo de dias, pode
+legitimamente precisar de commits de checkpoint pra continuidade (ver "Sessões" — "`tasks-faseN` com
+checkboxes é o que permite pausar/retomar"). A recomendação vale pro **estado que vai pra revisão**: chegue
+lá como um diff revisável, e trate o commit de `BUILT` como o registro histórico que importa — não os
+checkpoints intermediários.
+
+**Por que isso resolve, na prática, um problema já registrado:** a Fase 2 do OptiFlux teve um único commit
+squash (`ddbfdd5f`, "T2.1-T2.20") apagar do histórico que houve revisão, um veredito `VOLTA` e achados
+reabertos no meio — o `git log` mentia sobre a disciplina que de fato aconteceu. Não commitar até `BUILT`
+elimina a classe inteira desse problema: não há ciclo de revisão pra um commit prematuro esconder.
+
+### Virar a chave é um checklist, não uma metáfora
+
+"Humano vira a chave" nomeou a decisão certa, mas por muito tempo não virou passo operacional — e por isso
+caía num vão entre `keelson-review-session` (que só emite veredito, nunca escreve) e `keelson-deploy` (cuja
+precondição já pressupõe `BUILT` pronto, e só confere se o commit *existente* está publicado).
+
+Virar a chave, concretamente, são **dois atos**:
+
+1. **Commitar o diff revisado** — o commit único e limpo que "não commite até `BUILT`" preparou.
+2. **Gravar `Feature state: BUILT`** no frontmatter do artefato (`tasks-fase<N>.md`, `fix-<slug>.md` ou
+   `tweak-<slug>.md`).
+
+Os dois sempre juntos — um sem o outro deixa o artefato mentindo sobre o próprio estado: código commitado sem
+o frontmatter dizer `BUILT`, ou frontmatter dizendo `BUILT` sem commit real por trás.
+
+**A decisão é sempre humana; o gesto pode ser delegado.** A primeira versão desta regra dizia que os dois atos
+não eram delegados a nenhuma skill, por medo de que automatizar o gesto tirasse o próprio ponto de decisão. Uso
+de campo (OptiFlux) mostrou o custo real disso: o operador tinha que voltar à sessão de coding e, de próprio
+punho, pedir a promoção — funciona para quem já conhece a dança, é opaco para quem não conhece. A correção não
+é automatizar sem gate — é separar **decisão** de **execução**. `keelson-coding`, reinvocado sobre um artefato
+já em `NOT_BUILT_CODED`, **detecta** um veredito `PRONTO` registrado em `wiki/log/` (formato exigido de
+`keelson-review-session` — ver "Registrar o veredito", abaixo) e **pergunta**, num gate explícito, se deve
+commitar e gravar `BUILT`. A decisão continua do humano — ele confirma ou não; a skill só evita que ele tenha
+que redigitar o commit e editar o frontmatter à mão depois de já ter decidido. Sem o veredito registrado no
+formato certo, ou sem a confirmação, `keelson-coding` não promove — cai no caminho de override (ver abaixo).
+
+**Registrar o veredito não é opcional — é precondição mecânica da promoção.** `keelson-review-session` grava
+o veredito em `wiki/log/` num cabeçalho padrão, com o **slug do artefato** e o token literal `PRONTO`/`VOLTA`
+(detalhe em `keelson-review-session/SKILL.md`, Passo 4). Sem essa marca, no formato certo, `keelson-coding`
+não tem como saber que pode promover — o processo trava silenciosamente, não porque a revisão não aconteceu,
+mas porque ela não deixou rastro encontrável.
+
+**Sem rastro (revisão em sessão externa, não documentada aqui), o caminho é o override já descrito acima** —
+o operador fornece a justificativa curta que vai inline no `Feature state: BUILT` ("revisão sem rastro
+auditável aqui, aceito pelo operador, motivo: X"), e `keelson-coding` só promove depois disso. É o mesmo
+mecanismo de "override explícito, nunca silencioso" — só reconhecendo que "revisão aconteceu em sessão que
+esta não consegue ver" é o caso normal de sessões independentes (o humano é a única ponte entre elas), não uma
+exceção nova a formalizar.
+
+**Defesa em profundidade:** `keelson-deploy` reverifica os dois atos na própria sondagem (Passo 1), em vez de
+confiar que a etapa anterior fez certo — a mesma disciplina de "cada etapa reverifica a própria precondição"
+que já rege o resto do fluxo.
 
 ### Dois níveis de verificação: mecânica antes de semântica
 
@@ -208,8 +336,10 @@ Um **terceiro tipo de dono** entrou nessa camada congelada: a **fonte de domíni
 |---|---|---|---|
 | brief `→VALIDATED` | — | revisão adversarial (arquitetura, segurança); checklist de completude/ambiguidade | humano |
 | plan `→VALIDATED` | — | sanidade de fases/gates/dependências; coerência com o brief | humano |
-| tasks-faseN `→BUILT` | testes verdes + lint/types + greps de invariante | revisão **independente**: fidelidade ao §, invariantes/ADR, qualidade dos testes | agente-revisor (sessão separada) → **humano vira a chave** |
-| `→PILOT/PROD` | deploy + health check | crash tests, simulação antes de risco real, runbooks; revisão de segurança | humano |
+| tasks-faseN `→NOT_BUILT_CODED` | testes verdes + lint/types + greps de invariante | — (`keelson-coding`) | agente |
+| `→BUILT` | (herda o mecânico acima) | revisão **independente**: fidelidade ao §, invariantes/ADR, qualidade dos testes, gatilho de reescrita-de-teste (`keelson-review-session`, sessão separada) | agente-revisor → **humano decide, `keelson-coding` executa** (detecta o veredito em `wiki/log/`, confirma, commita + grava `Feature state: BUILT`) (ou override registrado) |
+| `→BUILT_DEPLOYED_PILOT`/`_PROD` | deploy + health check (`keelson-deploy`) | — | humano confirma o portal |
+| `→PILOT`/`PROD` | evidência observada ao vivo (`keelson-field-validation`) | crash tests, simulação antes de risco real, runbooks; revisão de segurança | humano |
 | merge da memória `→ main` | termo definido 2×; nº de ADR duplicado + refs órfãs pós-renumeração; invariantes textualmente contraditórios | o mesmo termo novo definido de formas *divergentes* pelas branches; decisões em tensão | **guardião** (humano) |
 
 ### O merge para a main é uma transição — e tem guardrail próprio *(desenho, pré-validação)*
@@ -220,7 +350,7 @@ Com trabalho em branches paralelas, há uma transição que as linhas clássicas
 
 - **Critério de aceite testável** — no estilo **EARS** (*Easy Approach to Requirements Syntax*, Mavin et al., 2009): requisito escrito como `QUANDO <condição> O SISTEMA DEVE <comportamento>`. Dá ao agente um **alvo objetivo que ele não escreveu** — o antídoto mais direto ao "corrigir a própria prova". Aplicar aos requisitos que importam, não a todos.
 - **Teste-primeiro que falha antes do código** — a fase *red* do **TDD** (Red-Green-Refactor, Beck, 2002): para tasks de alto raio de explosão, escrever o teste a partir do critério de aceite, **confirmar que falha**, e só então implementar. Mata o teste tautológico/falso-positivo (este projeto já viu um: teste que reimplementava a lógica em vez de importá-la). Proporcional, não para toda task trivial.
-- **Revisão independente em sessão separada** — quem revisa ≠ quem escreveu, com contexto fresco (o modelo de sessão já entrega isso de graça). Ancorada na camada congelada. No harness pode ser o `/code-review` apontado para brief + ADRs; skill dedicada só **depois de medir o que ela pega**.
+- **Revisão independente em sessão separada** — quem revisa ≠ quem escreveu, com contexto fresco (o modelo de sessão já entrega isso de graça). Ancorada na camada congelada. Skill dedicada: `keelson-review-session` — promovida depois de medida (Fase 2 do OptiFlux: 2 bugs reais que 275 testes verdes não pegaram). No harness sem a skill instalada, `/code-review` apontado para brief + ADRs cobre o mínimo.
 - **Revisão da *qualidade* dos testes** (não só "passam"): importam a lógica real em vez de reimplementá-la? cobrem os caminhos de risco? não são tautológicos? — ponto que o mercado sub-atende.
 
 ### Duas peças que faltavam (as mais valiosas na visão do próprio agente)
@@ -233,7 +363,7 @@ Com trabalho em branches paralelas, há uma transição que as linhas clássicas
 - Não uniformizar rigor — gate pesado em mudança de baixo raio é desperdício.
 - Não fazer *review theater* — revisão sem poder de mandar o artefato **de volta** é custo sem valor.
 - Não adotar pipeline de N comandos nem uma `constitution.md` que duplique os ADRs.
-- **Instrumentar antes de formalizar**: rodar a revisão independente por 2–3 fases, ver o que ela de fato pega, e só então investir em skill dedicada. Um guardrail só entra se, medido, produzir um resultado mais estável no fim — não porque a teoria o acha elegante.
+- **Instrumentar antes de formalizar**: o mesmo vale pra cada skill nova do fluxo — `keelson-deploy` e `keelson-fix` nascem nesta leva como desenho (`draft-para-testar`), sem promoção nenhuma, até o rastro do projeto (`wiki/log/`, um `tasks-fase<N>`/`fix-<slug>.md` real) mostrar o que pegam e o que deixam passar.
 
 ---
 

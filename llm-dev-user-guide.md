@@ -88,28 +88,27 @@ A utilização do Método Keelson pelo Humano e pelo LLM é suportada por conjun
 - **Três padrões do núcleo** — [`llm-dev-memory.md`](llm-dev-memory.md) (onde o conhecimento mora),
   [`llm-dev-flow.md`](llm-dev-flow.md) (como o trabalho anda), [`llm-dev-player.md`](llm-dev-player.md) (o
   papel do humano). Agnósticos a ferramenta.
+
 - **Uma camada fina por ferramenta** — o *application guide* (hoje [`llm-dev-claude.md`](llm-dev-claude.md),
   para o Claude Code) e o seu **log frio** de capturas ([`llm-dev-claude.log.md`](llm-dev-claude.log.md)),
   que ligam os papéis do método aos mecanismos concretos da sua ferramenta.
+
 - **Os instaladores** — dois prompts de exemplo ([bootstrap](llm-dev-prompt-bootstrap.md) para projeto novo,
   [migração](llm-dev-prompt-migration.md) para projeto existente) e um playbook  ([`llm-dev-migration.md`](llm-dev-migration.md)).
-- **As skills** — as **cinco do fluxo** ([`keelson-plan-init`](skills/keelson-plan-init/),
-  [`keelson-phase-landing`](skills/keelson-phase-landing/), [`keelson-phase-coding`](skills/keelson-phase-coding/),
-  [`keelson-phase-review`](skills/keelson-phase-review/), [`keelson-field-validation`](skills/keelson-field-validation/)),
-  que conduzem uma feature pelas fronteiras do fluxo, e [`keelson-application-guides-update`](skills/keelson-application-guides-update/),
-  que mantém o guia da ferramenta em dia quando a **ferramenta** muda.
 
-A lista completa da caixa está no [`llm-dev-package.md`](llm-dev-package.md); o mapa conceitual e o glossário,
-no [`llm-dev-README.md`](llm-dev-README.md). **Comece por esses dois se ainda não os leu** — este guia
-pressupõe que você sabe o que cada peça é. A partir daí, o trabalho deste documento é um só: **te levar do
-zero a um método instalado e se sustentando sozinho no seu projeto.**
+- **As skills** 
+	- **Skills de fluxo de desenvolvimento**: [`keelson-plan-init`](skills/keelson-plan-init/), [`keelson-phase-landing`](skills/keelson-phase-landing/), [`keelson-coding`](skills/keelson-coding/), [`keelson-review-session`](skills/keelson-review-session/).
+	- **Skills de implantação e campo**: [`keelson-deploy`](skills/keelson-deploy/), [`keelson-field-validation`](skills/keelson-field-validation/).
+	- **Skills de manutenção/bug/tweak**: [`keelson-fix`](skills/keelson-fix/) e [`keelson-tweak`](skills/keelson-tweak/) — duas portas simétricas (bug / ajuste sub-especificado), reusam as de coding/revisão/deploy/campo acima.
+	- **Skills de atualização da Wiki**: [`keelson-wiki-update`](skills/keelson-wiki-update/), [`keelson-metrics-snapshot`](skills/keelson-metrics-snapshot/)
+	* ***Skill adaptação**: [`keelson-application-guides-update`](skills/keelson-application-guides-update/).
+
+
+A lista completa da caixa está no [`llm-dev-package.md`](llm-dev-package.md); o mapa conceitual e o glossário, no [`llm-dev-README.md`](llm-dev-README.md). **Comece por esses dois se ainda não os leu** — este guia pressupõe que você sabe o que cada peça é. A partir daí, o trabalho deste documento é um só: **te levar do zero a um método instalado e se sustentando sozinho no seu projeto.**
 
 ## A regra que rege este guia também
 
-> **Aponta, não re-explica.** Quando você precisar do contrato completo de um padrão — o formato exato, as
-> disciplinas de edição, as convenções —, este guia **manda você ao arquivo do padrão**; ele não copia o
-> conteúdo. O padrão é a autoridade; este guia é o procedimento. É de propósito: assim o padrão pode evoluir
-> sem obrigar uma revisão do guia.
+> **Aponta, não re-explica.** Quando você precisar do contrato completo de um padrão — o formato exato, as disciplinas de edição, as convenções —, este guia **manda você ao arquivo do padrão**; ele não copia o conteúdo. O padrão é a autoridade; este guia é o procedimento. É de propósito: assim o padrão pode evoluir sem obrigar uma revisão do guia.
 
 ## Como navegar
 
@@ -127,7 +126,7 @@ Depois, **§5** (o ciclo de uma feature, conduzido pelas skills) é o motor do t
 
 # 2. Antes de começar
 
-Três coisas no lugar antes do primeiro comando.
+Primeiro vamos colocar algumas coisas lugar antes do primeiro comando.
 
 ## 2.1 Os arquivos do método, dentro do projeto (a pasta `.keelson/`)
 
@@ -164,16 +163,22 @@ A bifurcação decide tudo o que vem depois:
 
 O critério de sucesso também muda: no greenfield é *criar bem*; na migração é **não quebrar**. Se você tem dúvida sobre em qual caso está, a pergunta decisiva é: *já existe documentação gerada que eu teria de reorganizar?* Se sim, é migração.
 
-## 2.4 Instale as skills do método (Claude Code)
+## 2.4 Instale as skills do método 
 
-O método vem com **skills** — instruções executáveis que conduzem você pelas etapas do fluxo e pela manutenção do guia da ferramenta. Elas são o único artefato do pacote que **não** roda de `.keelson/`: o Claude Code só descobre skills em `.claude/skills/`. Então **copie cada pasta `skills/<nome>/` para `.claude/skills/<nome>/`** no seu projeto (ou no seu diretório de usuário, se quiser tê-las em todos os projetos).
+O método vem com **skills** — instruções executáveis que conduzem você pelas etapas do fluxo e pela manutenção do guia da ferramenta. Elas são o único artefato do pacote que **não** roda de `.keelson/`.
 
-São seis, em duas famílias:
+Por exemplo, no Claude Code a ferramenta só descobre skills em `.claude/skills/`. Então **copie cada pasta `skills/<nome>/` para `.claude/skills/<nome>/`** no seu projeto (ou no seu diretório de usuário, se quiser tê-las em todos os projetos).
 
-- **As cinco skills do fluxo** — `keelson-plan-init`, `keelson-phase-landing`, `keelson-phase-coding`, `keelson-phase-review`, `keelson-field-validation` — conduzem uma feature do brief ao campo, uma fronteira de cada vez. São o motor do **§5**.
-- **A skill de atualização do "application-guide" da sua ferramento** — `keelson-application-guides-update` — mantém o guia da ferramenta em dia quando a *ferramenta* muda. Entra em ação no **§7**.
+De acordo com a ferramenta de codificação que você vai utilizar o local correto das SKILL vai se modificar.
 
-Deixe todas instaladas agora; cada uma entra em cena na sua seção. (Por que elas moram em `.claude/skills/` e não em `.keelson/` como o resto do pacote: o contrato está no [`llm-dev-package.md`](llm-dev-package.md), "Exceção: skills rodam de `.claude/skills/`".)
+São onze, em quatro famílias:
+	- **Skills de fluxo de desenvolvimento**: [`keelson-plan-init`](skills/keelson-plan-init/), [`keelson-phase-landing`](skills/keelson-phase-landing/), [`keelson-coding`](skills/keelson-coding/), [`keelson-review-session`](skills/keelson-review-session/), conduzem uma feature do brief até a soleira de `BUILT`, uma fronteira de cada vez. São o motor do **§5**.
+	- **Skills de implantação e campo**: [`keelson-deploy`](skills/keelson-deploy/) (implanta em homologação/produção) e [`keelson-field-validation`](skills/keelson-field-validation/) (valida contra o ambiente real, produz `PILOT`/`PROD`).
+	- **Skills de manutenção/bug/tweak**: [`keelson-fix`](skills/keelson-fix/) — descoberta, reprodução e causa-raiz de um bug — e [`keelson-tweak`](skills/keelson-tweak/) — landing leve de um ajuste que não viola nada prometido, só estava sub-especificado. Duas portas simétricas: ambas rodam o mesmo teste de fronteira primeiro (viola algo prometido?) e se redirecionam uma pra outra quando o usuário bate na porta errada; ambas reusam as skills de coding/revisão/deploy/campo acima em vez de duplicá-las.
+	- **Skills de atualização da Wiki**: [`keelson-wiki-update`](skills/keelson-wiki-update/), [`keelson-metrics-snapshot`](skills/keelson-metrics-snapshot/), ela ajudam a manter a wiki atualizada. Normalmente o próprio uso do método vai atualizando as informações da Wiki, mas você pode sentir necessidade de "forçar" a atualização em algum momento.
+	- **Skill adaptação**: [`keelson-application-guides-update`](skills/keelson-application-guides-update/),  mantém o guia da ferramenta em dia quando a *ferramenta* muda. Entra em ação no **§7**.
+
+Deixe todas instaladas agora; cada uma entra em cena em seu momento oportuno. 
 
 ## 2.5 Um teste honesto antes de instalar qualquer coisa: **este projeto merece o método?**
 
@@ -281,6 +286,7 @@ docs/
   decisions/        # os registros de decisão (ADR), quando vierem
   specs/            # o que ainda vai ser construído (brief/plan/tasks)
   fixes/            # o irmão corretivo de specs/ (conserta o presente) — nasce vazio
+  tweaks/           # o terceiro irmão (refina o presente sub-especificado) — nasce vazio
   reports/          # relatórios/auditorias externas, cruas
   runbooks/         # manobra operacional (deploy, rotação de chave) — nasce vazio
   domain/           # fontes externas (regulamento, norma) — quando houver
@@ -290,6 +296,30 @@ Uma nota sobre `runbooks/`, que é fácil confundir com "documentação de opera
 sistema (o que está no ar mora no `now/`); é **como se muda** o estado.
 
 Atenção para mais dois nós fáceis de confundir. Para diferenciar o `docs/fixes/` é o **irmão corretivo** da `specs/`.  No caso a  `specs/` constrói o futuro, o `fixes/` conserta o presente — nasce vazio e só ganha o primeiro`fix-<slug>.md` quando um bug de porte aparecer. Importante que bug trivial não vira documento: é commit + linha no `log/` + teste de regressão. 
+
+Nem toda mudança em cima de código já existente é bug. Um tweak é um ajuste dentro do que já foi prometido —
+sem reprodução, sem *red*, com critério de aceite antes/depois — que ganha `tweak-<slug>.md` em `docs/tweaks/`
+pela skill [`keelson-tweak`](skills/keelson-tweak/), porta irmã de [`keelson-fix`](skills/keelson-fix/) (ambas
+rodam o mesmo teste de fronteira primeiro e se redirecionam quando alguém bate na porta errada — ver
+`llm-dev-flow-maintenance.md`, "Eixo 0"):
+
+| | Bug | Tweak | Feature |
+| --- | --- | --- | --- |
+| O que houve | promessa violada — código diverge de brief/invariante/ADR | nada violado, só **sub-especificado** — o comportamento cumpre o prometido, mas o detalhe nunca foi pensado com cuidado | capacidade **nova**, que não existia |
+| Toca invariante/decisão congelada? | pode | **nunca** (se tocar, é mudança de spec de verdade, não tweak) | pode — com brief |
+| Precisa de brief? | não | não | **sim** — ciclo `specs/` completo |
+| Prova de aceite | red→green (red-first) | antes/depois soft — nada quebrou, não há red | ciclo SDD completo (brief→plan→tasks) |
+
+Exemplo de tweak real: um painel que sempre respondeu certo, mas ficava apertado em 320px — ninguém prometeu
+uma largura específica, então nada foi violado; só nunca tinha sido pensado com cuidado.
+
+**Se um balde ganhar um `README.md` próprio** (comum em `specs/`/`fixes/`/`tweaks/`, cujo contrato completo já
+mora em `.keelson/`) — mantenha-o **fino**: um ponteiro pro contrato, nunca a teoria reescrita. Duplicar
+contrato é o jeito mais rápido dele ficar desatualizado — dado de campo real: já aconteceu duas vezes num
+único projeto adotante antes de virar disciplina (uma lista narrativa por item que ninguém mantinha, e antes
+dela um trecho de índice que precisou da mesma correção). Um README de balde deve responder só duas coisas:
+"onde mora o contrato" (ponteiro pro `.keelson/`) e "onde mora o catálogo de estado" (ponteiro pro
+`wiki/index.md` do projeto) — nada além disso.
 
 Já `known-issues.md` é o **ponteiro transiente** do que está quebrado ou em tratamento **agora** — o par do `invariants.md` (um diz o que o sistema *sempre/nunca* faz; o outro, o que está quebrado *hoje*). O `known-issues.md` é para o agente que começa frio não retrabalhar um bug já conhecido nem construir sobre ele achando que é comportamento correto. Dizemos que o `known-issues.md` é transiente porque a linha **sai** dele quando o problema é resolvido. O contrato dos dois vive no [`llm-dev-memory.md`](llm-dev-memory.md); o processo que os move em [`llm-dev-flow.md`](llm-dev-flow.md) e chama-se "Manutenção".
 
@@ -324,7 +354,7 @@ Você já tem um projeto vivo: código, documentação espalhada, provavelmente 
 ## Passo a passo
 
 1. **Rede de segurança — ANTES de tocar em qualquer coisa.**
-   - **Trabalhe numa branch.** Mover arquivo é reversível via git; a migração inteira fica *candidata* até o  merge.
+   - **Trabalhe numa branch.** Mover arquivo é reversível via git; a migração inteira fica *candidata* até o merge.
    - **Capture o baseline de métricas ANTES de migrar** — um snapshot (`wiki/metrics/AAAA-MM-DD-metric.md`) que reflita o estado **pré-método**. É contra ele que você vai medir se a migração melhorou custo/continuidade.
    > **Atenção:** baseline coletado *depois* de já ter mexido não mede nada. Este passo é irreversível no tempo — se você pular, perdeu a chance de saber se o método ajudou.
 
@@ -375,27 +405,30 @@ Como em todo o resto: **aponta, não re-explica.** O contrato completo do fluxo 
 Uma feature não salta da ideia ao ar. Ela **sobe uma escada de estados**, um degrau de cada vez:
 
 ```
-brief → plan → tasks → código → BUILT → campo → PILOT/PROD
+brief → plan → tasks → código → BUILT → deploy → campo → PILOT/PROD
 ```
 
-Cada uma das cinco skills do fluxo é responsável por **exatamente uma fronteira** dessa cadeia — e cada uma **para na soleira** da fronteira seguinte. Nenhuma vira a chave de estado sozinha: **quem promove é você.** A skill descobre o contexto, propõe, executa até o limite seguro e **te devolve a decisão**. Esse é o método em movimento — o agente é executor forte, mas o *veredito* de avançar é do humano.
+(A escada real nomeia mais degraus internos — aterrissado, codificado-mas-não-revisado, implantado-mas-não-validado — mas pro dia a dia operacional o diagrama acima já basta; o detalhe completo é o **Apêndice B**.)
+
+Cada uma das seis skills do fluxo é responsável por **exatamente uma fronteira** dessa cadeia — e cada uma **para na soleira** da fronteira seguinte. Nenhuma vira a chave de estado por conta própria: **a decisão de promover é sempre sua.** A skill descobre o contexto, propõe, executa até o limite seguro e **te devolve a decisão**. Esse é o método em movimento — o agente é executor forte, mas o *veredito* de avançar é do humano. Numa fronteira (`→ BUILT`, depois da revisão), o *gesto* de promover — commitar e gravar o estado — você pode delegar de volta a `keelson-coding`: chame-a de novo sobre o mesmo artefato depois do veredito, ela detecta o `PRONTO`, pergunta, e só commita/grava com o seu OK. A decisão continua sua; só a digitação manual é poupada.
 
 > **Duas coisas que toda skill do fluxo tem em comum — e valem mais que qualquer detalhe individual:**
 >
 > 1. **Um portão humano (PARE).** Antes de escrever qualquer coisa, a skill faz uma *auto-descoberta* — varre o workspace para achar a feature, a fase-alvo, o estado — e então **para** e te mostra o que achou, esperando sua **confirmação**. É o antídoto do "confiante-mas-errado" embutido no primeiro passo: ela nunca age sobre um palpite silencioso, e nunca inventa um dado que falta (se falta, pergunta).
-> 2. **A chave é sua.** Os estados que marcam progresso real — `VALIDATED`, `BUILT`, `PILOT`, `PROD` — **só o humano vira**. A skill leva até a *soleira* (o plano rascunhado, o código na trave, os testes verdes) e faz o *handoff* ali. Ela nunca se auto-promove — de propósito.
+> 2. **A chave é sua.** Os estados que marcam progresso real — `VALIDATED`, `BUILT`, `PILOT`, `PROD` — **só avançam com sua decisão explícita**. A skill leva até a *soleira* (o plano rascunhado, o código na trave, os testes verdes) e faz o *handoff* ali. Nenhuma skill se auto-promove por conta própria — de propósito; onde o gesto de promover é delegável (`keelson-coding`, depois da revisão), ele só roda depois de você confirmar num gate explícito, nunca por presunção.
 
 ## A cadeia, skill a skill
 
 | Fronteira do fluxo | Skill | O que ela faz por você | Onde para (você decide) |
 |---|---|---|---|
-| `brief` VALIDATED → `plan` | [`keelson-plan-init`](skills/keelson-plan-init/) | escreve o `plan-<slug>.md`: fases com **gates objetivos**, referenciando o brief por §, sem detalhar tasks | plano nasce `DRAFT`; **você valida** |
+| `brief` VALIDATED → `plan` (ou plano `VALIDATED` + lacuna de campo → fase nova) | [`keelson-plan-init`](skills/keelson-plan-init/) | escreve o `plan-<slug>.md` do zero — fases com **gates objetivos**, referenciando o brief por § — **ou**, se o plano já está `VALIDATED`, faz uma **revisão versionada**: abre só a fase que a lacuna pede, sem tocar nas já fechadas | plano (ou fase nova) nasce/entra `DRAFT`; **você valida** |
 | `plan` → `tasks-fase<N>` | [`keelson-phase-landing`](skills/keelson-phase-landing/) | a **aterrissagem**: reconcilia requisito a requisito o que o brief pede contra o **código que já existe**, e abre o `tasks` por uma tabela de rastreabilidade | `tasks` pronto; **colisões esperam sua decisão** |
-| `tasks` NOT_BUILT → soleira de `BUILT` | [`keelson-phase-coding`](skills/keelson-phase-coding/) | implementa **task a task**: red-first no que tem raio, mecânica antes de semântica, teste-de-costura nas fronteiras | soleira (testes verdes); **você não promove** |
-| revisão antes de `→ BUILT` | [`keelson-phase-review`](skills/keelson-phase-review/) | **revisão independente, em sessão fresca**: confere o diff contra a camada congelada e a **qualidade dos testes**; pode mandar de volta | veredito; **você vira a chave de `BUILT`** |
+| `tasks` NOT_BUILT → soleira de `BUILT` | [`keelson-coding`](skills/keelson-coding/) | implementa **task a task**: red-first no que tem raio, mecânica antes de semântica, teste-de-costura nas fronteiras | soleira (testes verdes); **você não promove ainda** |
+| revisão antes de `→ BUILT` | [`keelson-review-session`](skills/keelson-review-session/) | **revisão independente, em sessão fresca, obrigatória por padrão**: confere o diff contra a camada congelada e a **qualidade dos testes**; pode mandar de volta | veredito registrado em `wiki/log/`; **você confirma** — chame `keelson-coding` de novo sobre o mesmo artefato: ela detecta o `PRONTO` e, com seu OK, commita e grava `BUILT` (ou registra um override explícito, se decidir pular a revisão) |
+| `BUILT` → implantado | [`keelson-deploy`](skills/keelson-deploy/) | implanta em homologação e/ou produção, com **sondagem** obrigatória antes de qualquer comando de raio não-trivial + health check | implantado, aguardando validação; **você não promove** |
 | campo → `PILOT`/`PROD` | [`keelson-field-validation`](skills/keelson-field-validation/) | orienta a **validação de alta fidelidade** contra o ambiente real; registra evidência **observada ao vivo** | recomenda promoção; **você promove** |
 
-As quatro primeiras linhas são a espinha do trabalho de fase; a quinta é o "quarto modo" (mais abaixo). Vamos por partes.
+As cinco primeiras linhas são a espinha do trabalho de fase; a sexta é o "quarto modo" (mais abaixo). Um bug segue o mesmo trilho, começando pela [`keelson-fix`](skills/keelson-fix/) (descoberta/reprodução/causa-raiz — ver "Manutenção" no `llm-dev-flow.md`) e reusando `keelson-coding`/`keelson-review-session`/`keelson-deploy`/`keelson-field-validation` daqui em diante. Vamos por partes.
 
 ## Onde a cadeia começa — o brief (e o que as skills NÃO fazem)
 
@@ -420,19 +453,23 @@ Com um brief `VALIDATED` na mão, uma feature caminha assim — e você invoca *
 
 1. **Lance o plano** — invoque a `keelson-plan-init`. Ela acha o brief `VALIDATED` que ainda não tem plano, confirma com você e escreve o `plan-<slug>.md`: as **fases**, cada uma com um **gate de passagem objetivo** (critério de *evidência*, não de data — "o endpoint responde e passa nos testes de contrato"), e as dependências. Ela **não detalha tasks** — isso seria congelar decisão antes de ter chão de código. O plano nasce `DRAFT`; **você o revisa e valida** (cutuque os gates frágeis, as fases grandes demais).
 
+   > **Ou revise um plano já fechado.** A mesma skill tem um segundo caminho: quando brief **e** plano já estão `VALIDATED` e uma **lacuna de campo** — um `fix-<slug>.md` que apontou algo do brief nunca implementado, um item de `docs/specs/backlog.md`, uma hipótese refutada — pede uma fase que nenhuma fase existente cobre, ela faz uma **revisão versionada**: bump de versão (`V0.2→V0.3`), a fase nova entra na numeração, e as fases já `VALIDATED`/`BUILT` não são tocadas. **Se a origem for um item do `backlog.md`, o ponteiro é de mão dupla** — grava de volta na própria linha do item (reaproveitando o campo `Status:`/`Plan:`/`Doc:` que ele já usa), pra o backlog nunca ficar dizendo "a fazer" sobre algo que já está em andamento.
+
 2. **Aterrisse a fase** — invoque a `keelson-phase-landing` para a próxima fase cujo gate anterior fechou. Aqui está o passo que mais distingue o método de "cuspir código": **aterrissar não é transcrever o brief.** A skill lê o **código real** dos módulos que a fase toca e reconcilia, requisito a requisito, três desfechos possíveis — *já-existe* (a task vira *testar o que há*, não reconstruir), *lacuna-de-HOW* (o COMO se inventa no `tasks`, ancorado no § do brief) e **colisão** (o requisito bate contra algo que já existe — a skill **para e traz a decisão a você**; nunca edita o brief em silêncio). O resultado é o `tasks-fase<N>` aberto por uma **tabela de rastreabilidade** (cada task → § do brief).
 
-3. **Codifique a fase** — invoque a `keelson-phase-coding`. Ela leva o `tasks` de `NOT_BUILT` até a **soleira** de `BUILT`, task a task, respeitando a classificação da aterrissagem. A verificação é **proporcional ao raio de explosão**: red-first nas tasks de alto raio (escreve o teste, confirma que ele **falha**, só então implementa — mata o teste tautológico); mecânica antes de semântica (testes + lint/types + greps de invariante antes de qualquer leitura); e **um teste-de-costura por fronteira que sustenta peso** (o contraparte real in-suite, não só o mock — porque "um dublê escrito pela mesma mão concorda consigo por construção"). Ela para na soleira: código escrito, testes verdes. **Não vira a chave de `BUILT`.**
+3. **Codifique a fase** — invoque a `keelson-coding`. Ela leva o `tasks` de `NOT_BUILT` até a **soleira** `NOT_BUILT_CODED` de `BUILT`, task a task, respeitando a classificação da aterrissagem. A verificação é **proporcional ao raio de explosão**: red-first nas tasks de alto raio (escreve o teste, confirma que ele **falha**, só então implementa — mata o teste tautológico); mecânica antes de semântica (testes + lint/types + greps de invariante antes de qualquer leitura); e **um teste-de-costura por fronteira que sustenta peso** (o contraparte real in-suite, não só o mock — porque "um dublê escrito pela mesma mão concorda consigo por construção"). Ela para na soleira: código escrito, testes verdes. **Não vira a chave de `BUILT`.** **Recomendação: não commite ainda** — deixe o diff pro próximo passo revisar contra o *working tree*; o commit certo é o de depois da revisão, não antes.
 
-4. **Revise — em outra sessão.** Este é o guardrail nº 1 do método, e ele tem uma regra que **não é opcional**: a `keelson-phase-review` roda numa **sessão separada da que codou**. Por quê? Porque o modo de falha do agente não é preguiça, é **confiante-mas-errado**: testes verdes provam só o que o autor pensou em testar, e ele escreveu o código *e* os testes — que podem partilhar o mesmo mal-entendido. A independência vem do **contexto fresco**: quem revisa ≠ quem escreveu. A skill confere o diff contra a **camada congelada** (os § do brief via a tabela de aterrissagem, os ADRs/invariants, o glossário — ela **não inventa critério**) e faz o cheque de maior valor: a **qualidade dos testes** (eles importam a lógica real ou a reimplementam? são tautológicos? onde teste e código partilham a mesma suposição?). E ela tem **dentes**: pode mandar a fase **de volta** para coding (revisão sem poder de devolver é *teatro*). Passou? **Você vira a chave de `BUILT`.**
+4. **Revise — em outra sessão, sempre.** Este é o guardrail nº 1 do método, e virou **obrigatório por padrão** (não mais "recomendado"): a `keelson-review-session` roda numa **sessão separada da que codou**. Por quê? Porque o modo de falha do agente não é preguiça, é **confiante-mas-errado**: testes verdes provam só o que o autor pensou em testar, e ele escreveu o código *e* os testes — que podem partilhar o mesmo mal-entendido. A independência vem do **contexto fresco**: quem revisa ≠ quem escreveu. A skill confere o diff contra a **camada congelada** (os § do brief via a tabela de aterrissagem, os ADRs/invariants, o glossário — ela **não inventa critério**) e faz o cheque de maior valor: a **qualidade dos testes** (eles importam a lógica real ou a reimplementam? são tautológicos? onde teste e código partilham a mesma suposição? — se o diff **reescreveu o valor esperado de um teste que já existia**, isso é bandeira vermelha por si só, mesmo em raio baixo). E ela tem **dentes**: pode mandar a fase **de volta** para coding (revisão sem poder de devolver é *teatro*). Passou? **Você vira a chave de `BUILT`** — e **é aqui que o commit acontece**, se você seguiu a recomendação do passo 3 de não commitar antes: um commit limpo, representando o trabalho já revisado. Decidiu pular mesmo assim? É sua decisão, nunca da skill — e fica **registrada, com o motivo**, no cabeçalho do artefato, nunca um pulo silencioso. **Um veredito não estica sozinho:** se você voltar e mexer no código depois do `PRONTO` — mesmo só pra endereçar uma recomendação não-bloqueante que a própria revisão fez —, essas linhas novas não estão cobertas pelo veredito antigo. Chame `keelson-review-session` de novo (ela faz uma passada focada só no que mudou, não do zero) antes de virar a chave, ou registre outro override explícito.
 
 > **Isto não é cerimônia — é evidência de campo.** Na Fase 2 do OptiFlux (um sistema real, medido), a revisão independente pegou **dois bugs reais que 275 testes verdes não pegaram** — um deles derrubava o processo inteiro —, reproduzidos num teste que falha e **devolvidos para correção** antes de a fase ser promovida. É esse retorno medido que compra o custo de uma sessão a mais. (A mesma medição também achou o **limite** da revisão de código: ela não pegou um bug de fronteira HTTP que só existia no mock — o que nos leva ao próximo ponto.)
+
+5. **Implante — homologação e/ou produção.** Com `BUILT` na mão, invoque a `keelson-deploy`. **Publicar é trabalho dela, não seu** — commit local não é suficiente pro mecanismo de deploy do projeto enxergar; ela confirma se o commit já chegou no branch/mecanismo certo e, se não, publica (`git push`) como o primeiro passo real, antes de tocar qualquer ambiente. Só depois disso ela faz a **sondagem**: reverifica por ferramenta o estado real (config em disco, processos ativos) mesmo que já tenha lido isso antes na mesma sessão — "já li" ≠ "está verdadeiro agora". Se existe ambiente de homologação e o pedido é pular direto pra produção, isso é a **exceção**, com aviso reforçado — não o caminho padrão. Ela implanta e confirma **saúde** (não só "reiniciou" — o código certo está rodando). Não promove nada sozinha.
 
 ## O quarto modo — validação de campo
 
 Coding e revisão são poderosos, mas partilham um ponto cego: **ambos operam sobre dublês.** Um mock de um serviço externo, um stub do sistema de arquivos, um fixture do banco — nenhum *discorda* de você, porque foi você (ou o agente) que os escreveu. Nenhuma revisão de código, por mais independente que seja a *sessão*, descobre que **falta um secret no host**, que um restart precisa de `--force-recreate`, ou que o formato real que o serviço lá fora devolve não é o que o código assumiu. Isso é outra independência — a de **camada** (a coisa real vs. o dublê), não a de sessão.
 
-A `keelson-field-validation` orienta esse **quarto modo**: exercitar a **coisa real** (stage/produção). Ela é honesta sobre a própria natureza — validação de alta fidelidade é **irredutivelmente cara e parcialmente fora do alcance do método**: precisa de infra real, acesso ao ambiente, e às vezes não é reproduzível. A skill **não executa** deploy nem promove nada; ela **disciplina o que já é manual e arriscado**: consome a lista `field-validation-required` que a revisão produziu, ordena as checagens **da mais segura à mais arriscada** (leitura → não-destrutivo → destrutivo/restart), exige um **pré-voo** (reverificar a premissa por ferramenta antes de cada comando de raio — "já li" ≠ "está verdadeiro agora"), e registra **evidência observada ao vivo** (não lida em log antigo, não simulada). No fim, recomenda a promoção a `PILOT`/`PROD` **com base na evidência de campo** — mas, como sempre, **você vira a chave** — e **nomeia a lacuna residual sem disfarce**: o que ficou coberto só pela suíte, nunca reproduzido em campo. É a honestidade que a promoção carrega à vista.
+A `keelson-field-validation` orienta esse **quarto modo**: exercitar a **coisa real** (stage/produção). Ela é honesta sobre a própria natureza — validação de alta fidelidade é **irredutivelmente cara e parcialmente fora do alcance do método**: precisa de infra real, acesso ao ambiente, e às vezes não é reproduzível. A skill **não executa** deploy nem promove nada; ela **disciplina o que já é manual e arriscado**: consome a lista `field-validation-required` que a revisão produziu, ordena as checagens **da mais segura à mais arriscada** (leitura → não-destrutivo → destrutivo/restart), exige uma **sondagem** (reverificar a premissa por ferramenta antes de cada comando de raio — "já li" ≠ "está verdadeiro agora"), e registra **evidência observada ao vivo** (não lida em log antigo, não simulada). No fim, recomenda a promoção a `PILOT`/`PROD` **com base na evidência de campo** — mas, como sempre, **você vira a chave** — e **nomeia a lacuna residual sem disfarce**: o que ficou coberto só pela suíte, nunca reproduzido em campo. É a honestidade que a promoção carrega à vista.
 
 > **As duas independências, lado a lado.** A **revisão** (o passo 4 acima) te dá independência de *sessão* — outra cabeça, contexto fresco. A **validação de campo** te dá independência de *camada* — a coisa real, não o dublê. Uma não substitui a outra: a revisão pega o bug de lógica que o autor racionalizou; o campo pega o bug de costura que só aparece quando o contraparte real discorda. Um bug que dá para reproduzir **in-suite** (subindo o serviço real num teste) é **lacuna de coding — volta**, não campo; só o que **exige o host/produção real** é campo. O contrato dessa triagem está no [`llm-dev-flow.md`](llm-dev-flow.md) ("As duas independências").
 
@@ -466,7 +503,7 @@ Numa das fases, ler o **código real** (não o brief) revelou três coisas que t
 
 ## Coding: task a task, parando na soleira
 
-A implementação segue o padrão da `keelson-phase-coding`: cada task ganha código e teste antes de a próxima começar, e a sessão **para na soleira de `BUILT`** — não vira a chave sozinha.
+A implementação segue o padrão da `keelson-coding` (chamada `keelson-phase-coding` na época desta captura — ver §5): cada task ganha código e teste antes de a próxima começar, e a sessão **para na soleira de `BUILT`** — não vira a chave sozinha.
 
 ![Uma sessão de coding real marcando as tasks uma a uma; ao fechar, o registro foi "não deployado, não promovido a BUILT" — a regra dura da skill respeitada por construção.](images/coding-tasks-progresso.png)
 
@@ -474,9 +511,9 @@ Numa fase, o pacote de testes foi de zero a 275 verde. Isso prova que **o códig
 
 ## A revisão independente pega o que 275 testes verdes não pegam
 
-Este é o exemplo central. A `keelson-phase-review` roda numa **sessão fresca** — outra aba, sem memória de quem escreveu o código:
+Este é o exemplo central. A `keelson-review-session` (chamada `keelson-phase-review` na época desta captura) roda numa **sessão fresca** — outra aba, sem memória de quem escreveu o código:
 
-![A sessão de revisão (comando /keelson-phase-review, em aba própria): mecânica primeiro, depois semântica, e o veredito VOLTA para coding com dois achados bloqueantes reabertos como tasks.](images/review-veredito-volta.png)
+![A sessão de revisão (comando /keelson-phase-review — nome da skill na época da captura, hoje keelson-review-session, em aba própria): mecânica primeiro, depois semântica, e o veredito VOLTA para coding com dois achados bloqueantes reabertos como tasks.](images/review-veredito-volta.png)
 
 Naquela fase, os 275 testes estavam verdes e uma revisão independente ainda achou **dois bugs reais** — ambos *reproduzidos empiricamente antes de virarem task*, não hipóteses. O mais grave: duas rotas HTTP chamavam um serviço externo sem proteção; se ele piscasse no instante errado, uma única requisição **derrubava o processo inteiro** — levando junto o monitoramento de tudo o que estava rodando. O detalhe que crava o ponto: essa mesma proteção **já existia em três outros lugares** do código, escrita pelo mesmo autor — que a esqueceu em dois. Não era conceito novo escapando; era o ponto cego do próprio autor sobre o próprio trabalho.
 
@@ -613,12 +650,14 @@ O papel do guardião que lê estes sinais — as três vigílias — está em [`
 | Entender o conjunto | [`llm-dev-README.md`](llm-dev-README.md) · [`llm-dev-package.md`](llm-dev-package.md) |
 | Instalar em projeto novo | [`llm-dev-prompt-bootstrap.md`](llm-dev-prompt-bootstrap.md) → **§3** |
 | Migrar projeto existente | [`llm-dev-prompt-migration.md`](llm-dev-prompt-migration.md) + [`llm-dev-migration.md`](llm-dev-migration.md) → **§4** |
-| Lançar o plano de uma feature (brief já validado) | [`keelson-plan-init`](skills/keelson-plan-init/) → **§5** |
+| Lançar o plano de uma feature (brief já validado) — ou revisar um plano `VALIDATED` por uma lacuna de campo | [`keelson-plan-init`](skills/keelson-plan-init/) → **§5** |
 | Aterrissar uma fase (reconciliar brief × código) | [`keelson-phase-landing`](skills/keelson-phase-landing/) → **§5** |
-| Codificar uma fase já aterrissada | [`keelson-phase-coding`](skills/keelson-phase-coding/) → **§5** |
-| Revisar uma fase antes de promover (sessão fresca) | [`keelson-phase-review`](skills/keelson-phase-review/) → **§5** |
+| Codificar uma fase já aterrissada (ou um fix) | [`keelson-coding`](skills/keelson-coding/) → **§5** |
+| Revisar uma fase ou fix antes de promover (sessão fresca, sempre) | [`keelson-review-session`](skills/keelson-review-session/) → **§5** |
+| Implantar em homologação/produção | [`keelson-deploy`](skills/keelson-deploy/) → **§5** |
 | Validar em campo (stage/produção) | [`keelson-field-validation`](skills/keelson-field-validation/) → **§5** |
-| Corrigir um bug de porte | `docs/fixes/` + [`llm-dev-flow.md`](llm-dev-flow.md) ("Manutenção") |
+| Corrigir um bug de porte | [`keelson-fix`](skills/keelson-fix/) → `docs/fixes/` + [`llm-dev-flow.md`](llm-dev-flow.md) ("Manutenção") |
+| Fazer um tweak (ajuste sub-especificado, não bug) | [`keelson-tweak`](skills/keelson-tweak/) → `docs/tweaks/` |
 | Encaixar na sua ferramenta | [`llm-dev-claude.md`](llm-dev-claude.md) → **§7** |
 | Atualizar o guia quando a ferramenta muda | [`keelson-application-guides-update`](skills/keelson-application-guides-update/) → **§7** |
 | Manter tudo vivo | [`llm-dev-player.md`](llm-dev-player.md) → **§8** |
@@ -628,7 +667,7 @@ O papel do guardião que lê estes sinais — as três vigílias — está em [`
 - [ ] Li o `README` e o `package`.
 - [ ] Vendorizei o pacote do método em `.keelson/` na raiz do projeto (cópia pinada).
 - [ ] *(Nada a pré-baixar.)* Sei que a evidência da ferramenta nasce sob demanda: a skill gera a captura no `.log.md` quando a ferramenta muda.
-- [ ] Instalei **as skills** em `.claude/skills/` (as cinco do fluxo + a de manutenção do guia).
+- [ ] Instalei **as skills** em `.claude/skills/` (as seis do fluxo/implantação/campo + as duas de manutenção/bug/tweak + as duas de manutenção da wiki + a de manutenção do guia — onze ao todo).
 - [ ] Passei no teste "este projeto merece o método?" (§2.5).
 - [ ] Rodei o prompt do meu caminho (bootstrap **ou** migração).
 - [ ] *(migração)* Trabalhei numa branch e capturei o baseline **antes** de mover nada.
@@ -651,7 +690,7 @@ O papel do guardião que lê estes sinais — as três vigílias — está em [`
 
 ## Apêndice B — O padrão do fluxo → [`llm-dev-flow.md`](llm-dev-flow.md)
 
-**O jogo: como o trabalho anda.** É a autoridade sobre: o trio `brief → plan → tasks`; os dois eixos de estado no frontmatter de cada spec; a escada de evidência (NOT_BUILT → BUILT → PILOT → produção) e o congelamento proporcional; a aterrissagem (pousar a spec sobre o código antes de gerar tarefas); os guardrails por transição de estado; e a **Manutenção** (a seta de volta operacional — o `fix-<slug>.md` no balde `docs/fixes/` e o teste-regressão-*red* como piso do bug).
+**O jogo: como o trabalho anda.** É a autoridade sobre: o trio `brief → plan → tasks`; os dois eixos de estado no frontmatter de cada spec (`tasks-fase<N>` carrega os dois); a escada de evidência (`NOT_BUILT` → `BUILT` → `PILOT` → `PROD`, com sub-degraus nomeando o que cada skill entrega) e o congelamento proporcional; a aterrissagem (pousar a spec sobre o código antes de gerar tarefas); os guardrails por transição de estado (revisão independente obrigatória por padrão, com override registrado); e a **Manutenção** (a seta de volta operacional — o `fix-<slug>.md` no balde `docs/fixes/`, a `keelson-fix`, e o teste-regressão-*red* como piso do bug).
 - **Leia primeiro:** a tabela de guardrails por transição — o que é mecânico (grep, testes) e o que é  semântico (revisão) em cada portão.
 - **Volte aqui quando:** for estrear o fluxo numa funcionalidade nova (o Degrau 4 do §3), conduzido pelas skills do **§5**.
 

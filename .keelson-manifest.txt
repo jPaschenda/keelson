@@ -13,8 +13,14 @@ llm-dev-prompt-bootstrap.md
 llm-dev-prompt-migration.md
 llm-dev-user-guide.md
 skills/keelson-application-guides-update/SKILL.md
+skills/keelson-brief-prep/SKILL.md
+skills/keelson-coding/SKILL.md
+skills/keelson-deploy/SKILL.md
 skills/keelson-field-validation/SKILL.md
-skills/keelson-phase-coding/SKILL.md
+skills/keelson-fix/SKILL.md
+skills/keelson-metrics-snapshot/SKILL.md
 skills/keelson-phase-landing/SKILL.md
-skills/keelson-phase-review/SKILL.md
 skills/keelson-plan-init/SKILL.md
+skills/keelson-review-session/SKILL.md
+skills/keelson-tweak/SKILL.md
+skills/keelson-wiki-update/SKILL.md

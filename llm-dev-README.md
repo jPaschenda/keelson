@@ -1,5 +1,5 @@
 ---
-schema_version: "0.8"
+schema_version: 0.8.1
 class: front-door
 status: draft-pre-validacao
 data: 2026-07-28
@@ -9,6 +9,8 @@ data: 2026-07-28
 
 > **A porta de entrada do Método Keelson — uma metodologia para desenvolvimento com LLM.** Comece por aqui: este documento diz o que cada peça é, em que
 > ordem lê-las, e a regra que mantém tudo no lugar.
+
+> Nota Importante: Este ferramental encontra-se em fase de desenvolvimento e testes. Sugestões de melhorias e problemas identificados são muito bem-vindos. Observando-se que a utilização dele dentro dos projetos de desenvolvimento deve ser realizada de forma cuidadosa e vigilante.
 
 ## O problema
 

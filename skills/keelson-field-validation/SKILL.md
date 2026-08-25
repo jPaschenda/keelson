@@ -2,7 +2,7 @@
 class: skill
 name: keelson-field-validation
 status: draft-para-testar
-description: Orienta a VALIDAÇÃO DE ALTA FIDELIDADE de uma fase/feature do Método Keelson contra o ambiente real (stage/produção) — o "quarto modo". Consome a lista field-validation-required da revisão + os gates que só o ambiente real fecha, prescreve as checagens da mais segura à mais arriscada, registra evidência OBSERVADA ao vivo (não lida em log), e recomenda promoção a PILOT/PROD sem virar a chave. Use quando houver itens field-validation-required ou um gate que só o ambiente real fecha. NÃO executa deploy sozinha, NÃO promove (o humano vira a chave), e é honesta sobre o que não conseguiu reproduzir.
+description: Orienta a VALIDAÇÃO DE ALTA FIDELIDADE de um artefato do Método Keelson (tasks-fase<N>.md, fix-<slug>.md ou tweak-<slug>.md, já implantado — BUILT_DEPLOYED_PILOT/BUILT_DEPLOYED_PROD) contra o ambiente real (homologação/produção) — o "quarto modo". Consome a lista field-validation-required da revisão + os gates que só o ambiente real fecha, prescreve as checagens da mais segura à mais arriscada, registra evidência OBSERVADA ao vivo (não lida em log), e produz PILOT/PROD sem virar a chave. Use quando houver itens field-validation-required, um gate que só o ambiente real fecha, ou um artefato recém-implantado por keelson-deploy. NÃO executa deploy (isso é keelson-deploy), NÃO promove (o humano vira a chave), e é honesta sobre o que não conseguiu reproduzir.
 ---
 
 # Validação de campo (alta fidelidade)
@@ -17,12 +17,20 @@ o que ficou de fora.
 
 ## Escopo — o que esta skill faz e onde para
 
+- **Precondição:** o artefato (`tasks-fase<N>.md`, `fix-<slug>.md` ou `tweak-<slug>.md`) já está
+  `BUILT_DEPLOYED_PILOT` ou `BUILT_DEPLOYED_PROD` (implantado por `keelson-deploy`). Sem deploy, não há o que
+  validar em campo.
 - Consome a lista **`field-validation-required`** (produzida pela revisão) + os **gates** do plan que só o
   ambiente real fecha + as **hipóteses do brief** cujo nível-dono é `PILOT`/`PROD`.
-- Prescreve as checagens contra o ambiente real e **registra a evidência observada ao vivo**.
-- **Não** faz deploy sozinha; **não** promove a `PILOT`/`PROD` (o humano vira a chave); **não** escreve/edita
-  brief/plan; **não** edita `.keelson/`.
+- Prescreve as checagens contra o ambiente real e **registra a evidência observada ao vivo**. Confirmação ao
+  vivo move o `Feature state` a **`PILOT`** ou **`PROD`** (conforme o ambiente validado) — a recomendação de
+  promoção sai daqui; a chave é do humano.
+- **Não** faz deploy (`keelson-deploy`); **não** promove a `PILOT`/`PROD` sozinha (o humano vira a chave); **não**
+  escreve/edita brief/plan; **não** edita `.keelson/`.
 - Não substitui revisão nem coding — é o eixo ortogonal (fidelidade), não "mais quem".
+- **Bug fora do que está sendo validado não se conserta inline.** Se, validando, você achar um bug incidental
+  (não é o item que estava checando), **pare**, registre o achado, e aponte pra `keelson-fix` — não improvise o
+  conserto no meio da validação de campo.
 
 ## Passo 1 — Reunir o alvo de campo
 
@@ -51,10 +59,10 @@ modo antes.
 
 Para cada item, na ordem (**leitura → não-destrutivo → destrutivo/restart**; stage antes de prod quando existir):
 
-1. **Checagem de pré-voo (obrigatória antes de qualquer comando de raio não-trivial):** reverifique **por
+1. **Sondagem (obrigatória antes de qualquer comando de raio não-trivial):** reverifique **por
    ferramenta** a premissa de que o comando depende (a config / o estado real — grep/read/comando de leitura),
    **mesmo que já tenha lido antes nesta sessão**. "Já li" ≠ "está verdadeiro agora" (o runbook / o arquivo de
-   config / o compose dizem o que você acha que dizem? confirme).
+   config / o compose dizem o que você acha que dizem? confirme) — a maré muda entre a leitura e a manobra.
 2. **Prescreva o comando concreto + o observável esperado** (o que provaria o item). Acesso indireto: entregue
    o comando para o operador rodar e colar.
 3. **Registre a evidência OBSERVADA AO VIVO** — o que rodou, o que voltou de verdade. Distinga sempre
@@ -82,9 +90,9 @@ como **lacuna**, não como falha da validação.
 ## Regras duras (não viole)
 
 1. **Evidência = observada ao vivo**, não lida em log nem simulada. Se não viu a coisa real fazer, não passou.
-2. **Não promova** a `PILOT`/`PROD`; **não** faça deploy sozinha — o humano vira a chave e autoriza cada comando
-   de alto raio.
-3. **Pré-voo obrigatório** antes de comando de raio não-trivial: reverifique a premissa por ferramenta, mesmo já
+2. **Não promova** a `PILOT`/`PROD`; **não** faça deploy (`keelson-deploy`) — o humano vira a chave e autoriza
+   cada comando de alto raio.
+3. **Sondagem obrigatória** antes de comando de raio não-trivial: reverifique a premissa por ferramenta, mesmo já
    lida na sessão.
 4. **Timing sub-segundo não se valida por SSH remoto** — recomende instrumentação in-code, não re-tentativa.
 5. **Honestidade da lacuna** — nomeie explicitamente o que não foi reproduzido; a promoção carrega isso à vista.

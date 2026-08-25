@@ -1,5 +1,5 @@
 ---
-schema_version: "0.29"
+schema_version: "0.30"
 class: core
 status: draft-pre-validacao
 data: 2026-07-28
@@ -186,6 +186,22 @@ Cronológico, append-only, sharded por mês desde o início. **Só incidentes/di
 ```
 ## [AAAA-MM-DD] incidente | Título curto
 ```
+
+**Sharding por limiar, não só por calendário.** Num período de alta intensidade, um mês inteiro pode virar um
+arquivo grande demais antes mesmo de acabar (dado de campo: OptiFlux, agosto/2026 — 2.155 linhas / 40 entradas
+num único mês). Regra: shard no fim do mês **ou antes, se o arquivo cruzar ~600-800 linhas (ou ~15-20
+entradas) — o que vier primeiro.** `keelson-metrics-snapshot` já coleta o sinal (linhas por arquivo, Camada A);
+a curadoria de agir sobre ele é do **jogador**.
+
+**Convenção de nome e ponteiro ao shardar:** o arquivo sem sufixo (`AAAA-MM.md`) é sempre o **corrente** — quem
+recebe as próximas entradas. Ao cruzar o limiar, o bloco mais antigo sai para `AAAA-MM-1.md` (sequencial —
+`-2`, `-3`… se precisar shardar de novo no mesmo mês), fechado como histórico sem limite de tamanho — só o
+corrente precisa ficar magro. Feche o arquivo antigo com um ponteiro pra frente ("entradas mais recentes em
+`AAAA-MM.md`") e abra o corrente com um ponteiro de volta — mesmo idioma de bump+ponteiro já usado em
+brief/plan (ver `llm-dev-flow.md`).
+
+**Entrada enxuta:** o `log/` narra a leva (por quê, o que ficou pendente) — não repete o que o `changelog/` já
+lista por arquivo. Uma lista exaustiva de "arquivos tocados" dentro de uma entrada é redundância, não registro.
 
 ### `now/<branch>.md`
 

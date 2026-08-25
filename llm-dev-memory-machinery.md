@@ -1,8 +1,8 @@
 ---
-schema_version: "0.29"
+schema_version: "0.30"
 class: core-satellite
 status: draft-pre-validacao
-data: 2026-07-28
+data: 2026-08-10
 satellite_of: llm-dev-memory.md
 ---
 
@@ -110,5 +110,5 @@ Achado de campo: mesmo antes de qualquer automação (hooks ainda não implement
 4. Atualiza `wiki/index.md` diretamente para mudanças estruturais (novo arquivo, rename, data) — raio de explosão baixo o suficiente (reversível via git, erro é má rota, não falsa verdade) para não exigir aprovação prévia, mas o resumo da execução deve listar o que mudou.
 5. Para incidente/decisão: escreve em `wiki/_drafts/`, nunca commita direto — aprovação de 1 clique, igual ao desenho do hook.
 
-Isso resolve a pergunta em aberto da v0.2.1 sobre skills equivalentes a `mind-ingest`/`mind-query`/ `mind-lint`. Ainda não implementada como arquivo de skill real em nenhum projeto — próxima etapa natural depois que a fase 1 estiver rodando por um tempo.
+Isso resolve a pergunta em aberto da v0.2.1 sobre skills equivalentes a `mind-ingest`/`mind-query`/ `mind-lint`. Implementada como `skills/keelson-wiki-update/` — nasceu primeiro no adotante (OptiFlux) e foi promovida à fonte depois, a seta de volta na direção contrária às demais skills do pacote (adotante → fonte).
 

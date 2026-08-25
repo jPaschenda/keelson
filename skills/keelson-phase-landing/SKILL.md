@@ -25,6 +25,11 @@ confiança, deixe em branco** para o usuário preencher no Passo 2 — não inve
 
 - **`<slug>` / `<feature>`:** procure `plan-*.md` sob `docs/specs/**/` (padrão `docs/specs/<slug>/plan-<slug>.md`).
   `<feature>` = título H1 do plan.
+- **Precondição — plan `VALIDATED`:** leia o `Doc Status` no frontmatter do plan. `DRAFT` → **pare**: o plano
+  ainda não fechou; aterrissar uma fase sobre um plano instável congela decisão sem chão de design (mesma regra
+  que o `keelson-plan-init` já aplica ao brief). Inexistente → **pare**: falta o plano antes. Cheque também se a
+  fase-alvo carrega uma ressalva textual própria (ver `.keelson/llm-dev-flow.md`, "Revisão versionada do
+  `plan`") — o documento pode estar `VALIDATED` com uma fase específica ainda pendente.
 - **`<N>` (fase-alvo):** a **próxima** fase cujo gate da fase anterior já fechou e que ainda **não** tem
   `tasks-fase<N>-<slug>.md` — ou que tem um **incompleto**. Cruze três sinais: a lista de fases/gates no
   `plan`, os `tasks-fase*-<slug>.md` existentes (e seus checkboxes), e `wiki/now/<branch>.md`. Um `tasks` em
@@ -41,6 +46,7 @@ Terminada a varredura, **pare a execução** e apresente o que descobriu, exatam
 > 🔍 **Phase Landing — descoberta**
 > - **Feature:** {feature descoberta ou "?"}
 > - **Slug:** {slug ou "?"}
+> - **Plan — Doc Status:** {VALIDATED / DRAFT — bloqueia / não encontrei}
 > - **Fase-alvo:** Fase {N} — {objetivo/gate da fase, tirado do plan}
 > - **§§ do brief que a fase cobre:** {lista ou "?"}
 > - **Gate da Fase {N-1}:** {fechado / não fechado / não encontrei}
@@ -75,10 +81,13 @@ Agora você **tem** `feature`/`slug`/`N`/§§ confirmados — **use os valores c
   | | | | |
 
 - **Feche o arquivo com a Superfície de incerteza:** "o que assumi / onde posso estar errado / o que não verifiquei".
+- **Escreva `Feature state: NOT_BUILT_LANDED` no frontmatter do `tasks-fase<N>`** — não basta a aterrissagem
+  estar completa em prosa/tabela; o campo precisa refletir o estado de verdade. Descrever a soleira sem gravar
+  o valor é o mesmo erro que já aconteceu uma vez com `keelson-coding` (ver a nota de maturidade).
 
 ## Handoff — onde você para
 
-- **Pare aqui.** Não comece a codificar — é a próxima transição.
+- **Pare aqui.** Não comece a codificar — é a próxima transição (`keelson-coding`).
 - **Colisões pendentes de decisão humana bloqueiam o fechamento:** liste-as no topo do handoff.
 - (Opcional, se o harness suportar) sugira ao usuário renomear a sessão para `fase{N}-{slug}` — mas **nunca
   execute o rename sozinho**.
@@ -90,6 +99,9 @@ Agora você **tem** `feature`/`slug`/`N`/§§ confirmados — **use os valores c
 3. **Não invente** fato, dado ou contexto. Se faltar, **pare e pergunte** ao usuário (antídoto ao
    "confiante-mas-errado").
 4. **O gate humano do Passo 2 é obrigatório** — nunca pule para o Passo 3 sem confirmação.
+5. **Nunca aterrisse sobre um plan `DRAFT`** — a precondição do Passo 1 é dura, não sugestão.
+6. **Grave o `Feature state` no frontmatter, sempre** — descrever a soleira em prosa sem escrever o valor no
+   campo é o mesmo erro do que não fazer a aterrissagem.
 
 ## Nota de maturidade
 
