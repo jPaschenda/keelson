@@ -10,6 +10,9 @@ data: 2026-07-28
 > **A porta de entrada do Método Keelson — uma metodologia para desenvolvimento com LLM.** Comece por aqui: este documento diz o que cada peça é, em que
 > ordem lê-las, e a regra que mantém tudo no lugar.
 
+> Nota Importante: Este ferramental encontra-se em fase de desenvolvimento e testes. Sugestões de melhorias e problemas identificados são muito bem-vindos.
+> Observando-se que a utilização dele dentro dos projetos de desenvolvimento deve ser realizada de forma cuidadosa e vigiliante. 
+
 ## O problema
 
 Um agente de IA trabalha no seu código em **sessões curtas e repetidas**, e chega a cada uma sem memória da
